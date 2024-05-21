@@ -20,12 +20,22 @@ type ID string
 
 var idRegexp = regexp.MustCompile(`^[A-Za-z0-9\-_]+$`)
 
-func (id ID) MarshalJSON() ([]byte, error) {
+// Valid checks to make sure that the given ID is valid according to the
+// specification.
+func (id ID) Valid() (bool, error) {
 	if len(string(id)) < 1 {
-		return nil, fmt.Errorf("invalid ID: too short")
+		return false, fmt.Errorf("invalid ID: too short")
 	}
 	if len(string(id)) > 255 {
-		return nil, fmt.Errorf("invalid ID: too long")
+		return false, fmt.Errorf("invalid ID: too long")
+	}
+
+	return true, nil
+}
+
+func (id ID) MarshalJSON() ([]byte, error) {
+	if _, err := id.Valid(); err != nil {
+		return nil, err
 	}
 	return json.Marshal(string(id))
 }
