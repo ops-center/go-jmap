@@ -3,6 +3,7 @@ package jmap
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -47,7 +48,15 @@ func (c *Client) WithBasicAuth(username string, password string) *Client {
 // Set the HttpClient to a client which authenticates using the provided Access
 // Token
 func (c *Client) WithAccessToken(token string) *Client {
-	ctx := context.Background()
+	baseClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
+
+	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, baseClient)
 	t := &oauth2.Token{
 		AccessToken: token,
 		TokenType:   "bearer",
