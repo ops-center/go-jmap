@@ -32,8 +32,7 @@ type Client struct {
 
 // Set the HttpClient to a client which authenticates using the provided
 // username and password
-func (c *Client) WithBasicAuth(username string, password string) *Client {
-	ctx := context.Background()
+func (c *Client) WithBasicAuth(ctx context.Context, username string, password string) *Client {
 	auth := username + ":" + password
 	t := &oauth2.Token{
 		AccessToken: base64.StdEncoding.EncodeToString([]byte(auth)),
@@ -46,8 +45,7 @@ func (c *Client) WithBasicAuth(username string, password string) *Client {
 
 // Set the HttpClient to a client which authenticates using the provided Access
 // Token
-func (c *Client) WithAccessToken(token string) *Client {
-	ctx := context.Background()
+func (c *Client) WithAccessToken(ctx context.Context, token string) *Client {
 	t := &oauth2.Token{
 		AccessToken: token,
 		TokenType:   "bearer",
