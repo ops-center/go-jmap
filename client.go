@@ -26,6 +26,12 @@ type Client struct {
 	// object needs refetching, it will automatically do so.
 	SessionEndpoint string
 
+	// The protocol for the JMAP API
+	Protocol string
+
+	// The domain for the JMAP API
+	Domain string
+
 	// the JMAP Session object
 	Session *Session
 }
@@ -95,7 +101,17 @@ func (c *Client) Authenticate() error {
 	}
 
 	c.Lock()
-	c.Session = s
+	c.Session.APIURL = strings.ReplaceAll(c.Session.APIURL, "{protocol}", c.Protocol)
+	c.Session.APIURL = strings.ReplaceAll(c.Session.APIURL, "{domain}", c.Domain)
+
+	c.Session.UploadURL = strings.ReplaceAll(c.Session.UploadURL, "{protocol}", c.Protocol)
+	c.Session.UploadURL = strings.ReplaceAll(c.Session.UploadURL, "{domain}", c.Domain)
+
+	c.Session.DownloadURL = strings.ReplaceAll(c.Session.DownloadURL, "{protocol}", c.Protocol)
+	c.Session.DownloadURL = strings.ReplaceAll(c.Session.DownloadURL, "{domain}", c.Domain)
+
+	c.Session.EventSourceURL = strings.ReplaceAll(c.Session.EventSourceURL, "{protocol}", c.Protocol)
+	c.Session.EventSourceURL = strings.ReplaceAll(c.Session.EventSourceURL, "{domain}", c.Domain)
 	c.Unlock()
 
 	return nil
