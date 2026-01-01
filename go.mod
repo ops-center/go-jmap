@@ -4,7 +4,7 @@ go 1.25.5
 
 require (
 	github.com/stretchr/testify v1.8.0
-	golang.org/x/oauth2 v0.27.0
+	golang.org/x/oauth2 v0.33.0
 )
 
 require (
