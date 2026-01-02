@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"strings"
 	"sync"
 
@@ -77,7 +78,7 @@ func (c *Client) Authenticate() error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() // nolint:errcheck
 
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("couldn't authenticate")
@@ -101,6 +102,9 @@ func (c *Client) Authenticate() error {
 	return nil
 }
 
+// The core capabilty must be included in all method calls
+const CoreURI URI = "urn:ietf:params:jmap:core"
+
 // Do performs a JMAP request and returns the response
 func (c *Client) Do(req *Request) (*Response, error) {
 	c.Lock()
@@ -113,15 +117,25 @@ func (c *Client) Do(req *Request) (*Response, error) {
 	} else {
 		c.Unlock()
 	}
+	// Ensure the core capability is always included
+	found := slices.Contains(req.Using, CoreURI)
+	if !found {
+		req.Using = append(req.Using, CoreURI)
+	}
+
 	// Check the required capabilities before making the request
+	c.Lock()
 	for _, uri := range req.Using {
-		c.Lock()
-		_, ok := c.Session.Capabilities[uri]
-		c.Unlock()
+		// Check RawCapabilities in case we have asked for unparsed
+		// capabilities, or the core capability
+		_, ok := c.Session.RawCapabilities[uri]
 		if !ok {
+			c.Unlock()
 			return nil, fmt.Errorf("server doesn't support required capability '%s'", uri)
 		}
 	}
+	c.Unlock()
+
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
@@ -139,7 +153,7 @@ func (c *Client) Do(req *Request) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer httpResp.Body.Close()
+	defer httpResp.Body.Close() // nolint:errcheck
 
 	if httpResp.StatusCode != 200 {
 		return nil, decodeHttpError(httpResp)
@@ -190,6 +204,8 @@ func (c *Client) UploadWithContext(
 		if err != nil {
 			return nil, err
 		}
+
+		c.Lock()
 	}
 
 	url := strings.ReplaceAll(c.Session.UploadURL, "{accountId}", string(accountID))
@@ -204,7 +220,7 @@ func (c *Client) UploadWithContext(
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() // nolint:errcheck
 
 	if resp.StatusCode != 200 && resp.StatusCode != 201 {
 		return nil, decodeHttpError(resp)
@@ -244,6 +260,8 @@ func (c *Client) DownloadWithContext(
 		if err != nil {
 			return nil, err
 		}
+
+		c.Lock()
 	}
 
 	urlRepl := strings.NewReplacer(
@@ -265,7 +283,7 @@ func (c *Client) DownloadWithContext(
 		return nil, err
 	}
 	if resp.StatusCode != 200 {
-		defer resp.Body.Close()
+		defer resp.Body.Close() // nolint:errcheck
 		return nil, decodeHttpError(resp)
 	}
 
